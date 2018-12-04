@@ -25,20 +25,29 @@ class CustomMenuBreadcrumbsBuilder implements BreadcrumbBuilderInterface{
    * {@inheritdoc}
    */
   public function applies(RouteMatchInterface $attributes) {
-    $parameters = $attributes->getParameters()->all();
-    $type = key($parameters);
-    if (in_array($type, ["user", "node"])) {
-      foreach ($this->config->get('custom_menu_breadcrumbs') as $key => $value) {
-        if (empty($value)) continue;
-        if (substr($key, 0, 5) !== $this->prefix) continue;
-        if ($type =="node" && $parameters[$type]->getType() == str_replace($this->prefix, '', $key) ||
-          ($type =="user" && $type == str_replace($this->prefix, '', $key))) {
-          $this->type_name = str_replace($this->prefix, '', $key);
-          $this->menu_id = $value;
-          return true;
+    try {
+      $parameters = $attributes->getParameters()->all();
+      $type = key($parameters);
+      if (in_array($type, ["user", "node"])) {
+        foreach ($this->config->get('custom_menu_breadcrumbs') as $key => $value) {
+          if (empty($value)) continue;
+          if (substr($key, 0, 5) !== $this->prefix) continue;
+          if ($type =="node" && method_exists($parameters[$type], 'getType') !== true) continue;
+          if ($type =="node" && $parameters[$type]->getType() == str_replace($this->prefix, '', $key) ||
+            ($type =="user" && $type == str_replace($this->prefix, '', $key))) {
+            $this->type_name = str_replace($this->prefix, '', $key);
+            $this->menu_id = $value;
+            return true;
+          }
         }
       }
-    }
+    } catch (\Exception $e) {
+      return;
+      \Drupal::logger('php')->notice(
+        'Class: ' . __CLASS__ . ', Function: ' .  __FUNCTION__ . ', Error: %message, Line: %line',
+        ['%message' =>  $e->getMessage(), '%line' => $e->getLine()]
+      );
+    }    
   }
 
   /**
@@ -63,7 +72,6 @@ class CustomMenuBreadcrumbsBuilder implements BreadcrumbBuilderInterface{
       $menu_tree = [];
       $id = $plugin_id;
 
-
       do {
         $parent_menu = $menu_link_manager->createInstance($id);
         if ($parent_menu) {
@@ -86,8 +94,10 @@ class CustomMenuBreadcrumbsBuilder implements BreadcrumbBuilderInterface{
     } catch (\Exception $e) {
       // log to watchdog
       $breadcrumb->addLink(Link::createFromRoute($e->getMessage(), '<nolink>'));
-      \Drupal::logger('php')->notice('custom_menu_breadcrumb error: %message',
-        ['%message' =>  $e->getMessage()]);
+      \Drupal::logger('php')->notice(
+        'Class: ' . __CLASS__ . ', Function: ' .  __FUNCTION__ . ', Error: %message, Line: %line',
+        ['%message' =>  $e->getMessage(), '%line' => $e->getLine()]
+      );
       return $breadcrumb;
     }
 

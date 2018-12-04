@@ -31,49 +31,58 @@ class Config extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $form['#tree'] = TRUE;
-    // Form constructor.
-    $form = parent::buildForm($form, $form_state);
-    // Default settings.
-    $config = $this->config('custom_menu_breadcrumbs.settings');
 
-    // get all types
-    $contentTypes = \Drupal::service('entity.manager')->getStorage('node_type')->loadMultiple();
-    asort($contentTypes);
+    try {
+      $form['#tree'] = TRUE;
+      // Form constructor.
+      $form = parent::buildForm($form, $form_state);
+      // Default settings.
+      $config = $this->config('custom_menu_breadcrumbs.settings');
 
-    $form['menu_name'] = array(
-      '#type' => 'textfield',
-      '#title' => 'Menu machien name',
-      '#description' => t('Input menu machine name. eg. main'),
-      '#default_value' => $config->get('custom_menu_breadcrumbs.menu_name'),
-      '#size' => 20,
-    );
+      // get all types
+      $contentTypes = \Drupal::service('entity.manager')->getStorage('node_type')->loadMultiple();
+      asort($contentTypes);
 
-    foreach ($contentTypes as $contentType) {
-      $id = $contentType->id();
-      $label = $contentType->label();
+      $form['menu_name'] = array(
+        '#type' => 'textfield',
+        '#title' => 'Menu machien name',
+        '#description' => t('Input menu machine name. eg. main'),
+        '#default_value' => $config->get('custom_menu_breadcrumbs.menu_name'),
+        '#size' => 20,
+      );
 
-      if ($config->get('custom_menu_breadcrumbs.type_' . $id) == "" ) {
-        $default = $config->get('custom_menu_breadcrumbs.menu_name') . ':';
-      } else {
-        $default = $config->get('custom_menu_breadcrumbs.type_' . $id);
+      foreach ($contentTypes as $contentType) {
+        $id = $contentType->id();
+        $label = $contentType->label();
+
+        if ($config->get('custom_menu_breadcrumbs.type_' . $id) == "" ) {
+          $default = $config->get('custom_menu_breadcrumbs.menu_name') . ':';
+        } else {
+          $default = $config->get('custom_menu_breadcrumbs.type_' . $id);
+        }
+        $form['type_' . $id] = \Drupal::service('menu.parent_form_selector')->parentSelectElement($default, $config->get('custom_menu_breadcrumbs.type_' . $id));
+        $form['type_' . $id]['#title'] = $this->t($label);
+        $form['type_' . $id]['#description'] = $this->t('Select the last parent menu to display breadcrumb.');
+        $form['type_' . $id]['#attributes']['class'][] = 'menu-title-select';
       }
+
+      // User
+      $id = "user";
+      $label = "User";
+      $default = $config->get('custom_menu_breadcrumbs.type_' . $id);
       $form['type_' . $id] = \Drupal::service('menu.parent_form_selector')->parentSelectElement($default, $config->get('custom_menu_breadcrumbs.type_' . $id));
       $form['type_' . $id]['#title'] = $this->t($label);
       $form['type_' . $id]['#description'] = $this->t('Select the last parent menu to display breadcrumb.');
       $form['type_' . $id]['#attributes']['class'][] = 'menu-title-select';
+
+      return $form;
+    } catch (\Exception $e) {
+      \Drupal::logger('php')->notice(
+        'Class: ' . __CLASS__ . ', Function: ' .  __FUNCTION__ . ', Error: %message, Line: %line',
+        ['%message' =>  $e->getMessage(), '%line' => $e->getLine()]
+      );
     }
 
-    // User
-    $id = "user";
-    $label = "User";
-    $default = $config->get('custom_menu_breadcrumbs.type_' . $id);
-    $form['type_' . $id] = \Drupal::service('menu.parent_form_selector')->parentSelectElement($default, $config->get('custom_menu_breadcrumbs.type_' . $id));
-    $form['type_' . $id]['#title'] = $this->t($label);
-    $form['type_' . $id]['#description'] = $this->t('Select the last parent menu to display breadcrumb.');
-    $form['type_' . $id]['#attributes']['class'][] = 'menu-title-select';
-
-    return $form;
   }
 
   /**

@@ -4,4 +4,5 @@ description: Provides a flexible way to set breadcrumbs for node and user withou
 core: 8.x
 configure: custom_menu_breadcrumbs.form
 dependencies:
- - menu_breadcrumb
+ - menu_breadcrumb:menu_breadcrumb
+ 
